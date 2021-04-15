@@ -14,7 +14,8 @@ extension Socket {
     ///   - listenAddress: String representation of the address the socket should accept
     ///       connections from. It should be in IPv4 format if forceIPv4 == true,
     ///       otherwise - in IPv6.
-    public class func tcpSocketForListen(_ port: in_port_t, _ forceIPv4: Bool = false, _ maxPendingConnection: Int32 = SOMAXCONN, _ listenAddress: String? = nil) throws -> Socket {
+    public class func tcpSocketForListen(_ port: in_port_t, _ forceIPv4: Bool = false, _ maxPendingConnection: Int32 = SOMAXCONN, _ listenAddress: String? = nil, writeChunkSize: Int? = nil,
+                                         writePeriodicDelay: TimeInterval? = nil) throws -> Socket {
 
         #if os(Linux)
             let socketFileDescriptor = socket(forceIPv4 ? AF_INET : AF_INET6, Int32(SOCK_STREAM.rawValue), 0)
@@ -100,7 +101,7 @@ extension Socket {
             Socket.close(socketFileDescriptor)
             throw SocketError.listenFailed(details)
         }
-        return Socket(socketFileDescriptor: socketFileDescriptor)
+        return Socket(socketFileDescriptor: socketFileDescriptor, writeChunkSize: writeChunkSize, writePeriodicDelay: writePeriodicDelay)
     }
 
     public func acceptClientSocket() throws -> Socket {
@@ -111,6 +112,6 @@ extension Socket {
             throw SocketError.acceptFailed(Errno.description())
         }
         Socket.setNoSigPipe(clientSocket)
-        return Socket(socketFileDescriptor: clientSocket)
+        return Socket(socketFileDescriptor: clientSocket, writeChunkSize: writeChunkSize, writePeriodicDelay: writePeriodicDelay)
     }
 }

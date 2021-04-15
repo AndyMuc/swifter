@@ -25,10 +25,16 @@ public enum SocketError: Error {
 open class Socket: Hashable, Equatable {
 
     let socketFileDescriptor: Int32
+    let writeChunkSize: Int?
+    let writePeriodicDelay: TimeInterval?
     private var shutdown = false
 
-    public init(socketFileDescriptor: Int32) {
+    public init(socketFileDescriptor: Int32,
+                writeChunkSize: Int? = nil,
+                writePeriodicDelay: TimeInterval? = nil) {
         self.socketFileDescriptor = socketFileDescriptor
+        self.writeChunkSize = writeChunkSize
+        self.writePeriodicDelay = writePeriodicDelay
     }
 
     deinit {
@@ -97,7 +103,7 @@ open class Socket: Hashable, Equatable {
         try data.withUnsafeBytes { (body: UnsafeRawBufferPointer) -> Void in
             if let baseAddress = body.baseAddress, body.count > 0 {
                 let pointer = baseAddress.assumingMemoryBound(to: UInt8.self)
-                try self.writeBuffer(pointer, length: data.count)
+              try self.writeBuffer(pointer, length: data.count)
             }
         }
         #else
@@ -113,12 +119,15 @@ open class Socket: Hashable, Equatable {
             #if os(Linux)
                 let result = send(self.socketFileDescriptor, pointer + sent, Int(length - sent), Int32(MSG_NOSIGNAL))
             #else
-                let result = write(self.socketFileDescriptor, pointer + sent, Int(length - sent))
+                let result = write(self.socketFileDescriptor, pointer + sent, writeChunkSize ?? Int(length - sent))
             #endif
             if result <= 0 {
                 throw SocketError.writeFailed(Errno.description())
             }
             sent += result
+          if let interval = writePeriodicDelay {
+            Thread.sleep(forTimeInterval: interval)
+          }
         }
     }
 
