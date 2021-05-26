@@ -81,4 +81,9 @@ open class HttpServer: HttpServerIO {
             get { return nil }
         }
     }
+    
+    public func headerSize(for response: HttpResponse, keepAlive: Bool) -> Int? {
+        header(for: response, keepAlive: keepAlive).data(using: .utf8)?.count
+    }
+    
 }

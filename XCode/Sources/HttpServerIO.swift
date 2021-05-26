@@ -166,13 +166,8 @@ open class HttpServerIO {
             try socket.writeData(data)
         }
     }
-
-    private func respond(_ socket: Socket, response: HttpResponse, keepAlive: Bool) throws -> Bool {
-        guard self.operating else { return false }
-
-        // Some web-socket clients (like Jetfire) expects to have header section in a single packet.
-        // We can't promise that but make sure we invoke "write" only once for response header section.
-
+    
+    func header(for response: HttpResponse, keepAlive: Bool) -> String {
         var responseHeader = String()
 
         responseHeader.append("HTTP/1.1 \(response.statusCode) \(response.reasonPhrase)\r\n")
@@ -192,7 +187,20 @@ open class HttpServerIO {
         }
 
         responseHeader.append("\r\n")
+        
+        return responseHeader
+    }
+  
+    private func respond(_ socket: Socket, response: HttpResponse, keepAlive: Bool) throws -> Bool {
+        guard self.operating else { return false }
 
+        // Some web-socket clients (like Jetfire) expects to have header section in a single packet.
+        // We can't promise that but make sure we invoke "write" only once for response header section.
+
+        let responseHeader = header(for: response, keepAlive: keepAlive)
+        
+        let content = response.content()
+        
         try socket.writeUTF8(responseHeader)
 
         if let writeClosure = content.write {

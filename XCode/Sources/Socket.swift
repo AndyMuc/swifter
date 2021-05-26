@@ -125,7 +125,8 @@ open class Socket: Hashable, Equatable {
                 throw SocketError.writeFailed(Errno.description())
             }
             sent += result
-          if let interval = writePeriodicDelay {
+          if let interval = writePeriodicDelay,
+             sent < length {
             Thread.sleep(forTimeInterval: interval)
           }
         }
